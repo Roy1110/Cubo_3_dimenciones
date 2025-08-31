@@ -1,68 +1,107 @@
-# Instalar si no lo tienes
-#install.packages("plotly")
-#install.packages("dplyr")
 
+# -------------------------------
 library(plotly)
 library(dplyr)
 
-# Datos
-anios <- c(2023, 2024)
-productos <- c("Laptop", "Tablet", "Teléfono")
-regiones <- c("Norte", "Sur")
+# Age, gender, employer status (in this case we use students)
 
-ventas <- data.frame(
-  Año = rep(anios, each = length(productos) * length(regiones)),
-  Producto = rep(rep(productos, each = length(regiones)), times = length(anios)),
-  Región = rep(regiones, times = length(productos) * length(anios)),
-  Ventas = c(
-    5000, 4000, 6000, 3500, 8000, 7000,
-    5500, 4500, 6200, 3900, 8100, 7300
-  )
+# Llamamos la ruta de los archivos
+mi_data_1 <- read.csv("/home/jimbotz/Desktop/Universidad/Sexto semestre/mineria de datos/p1/Cubo_3_dimenciones/mental_health_dataset.csv")
+mi_data_2 <- read.csv("/home/jimbotz/Desktop/Universidad/Sexto semestre/mineria de datos/p1/Cubo_3_dimenciones/Student Mental health.csv")
+mi_data_3 <- read.csv("/home/jimbotz/Desktop/Universidad/Sexto semestre/mineria de datos/p1/Cubo_3_dimenciones/student_depression_dataset.csv")
+
+# para tus rutas rodri
+# mi_data_1 <- read.csv("/home/jimbotz/Desktop/Universidad/Sexto semestre/mineria de datos/p1/Cubo_3_dimenciones/mental_health_dataset.csv")
+# mi_data_2 <- read.csv("/home/jimbotz/Desktop/Universidad/Sexto semestre/mineria de datos/p1/Cubo_3_dimenciones/mental_health_dataset.csv")
+# mi_data_3 <- read.csv("/home/jimbotz/Desktop/Universidad/Sexto semestre/mineria de datos/p1/Cubo_3_dimenciones/mental_health_dataset.csv")
+
+
+# primer csv age, gender, employment_status (tenemos que seleecionar students), depression_score (tenemos que generalizar el score a un si o no) 0-30, mental_health_history
+#head(mi_data_1)
+# segundo  csv Age, Choose your gender, What is your course? (aca todos son estudiantes), Do you have Depression?, Did you seek any specialist for a treatment?     
+#head(mi_data_2)
+# tercer csv Age, Gender, Profession (tenemos que seleecionar students), Depression, Family History of Mental Illness (aca si bien no es igual a los otros campos puede servir)
+#head(mi_data_3)
+
+
+# Una vez que verificamos que si abrieron los archivos xd toca seleccionar los campos 
+# Seleccionamos las 3 variables más simples que todos tienen pero mientras solo con 1 dataset
+todas_combinaciones <- expand.grid(
+  age = unique(mi_data$age),
+  gender = unique(mi_data$gender),
+  employment_status = unique(mi_data$employment_status)
 )
 
-# Asignar coordenadas para simular un cubo 3D
-x_map <- setNames(0:(length(anios) - 1), anios)
-y_map <- setNames(0:(length(productos) - 1), productos)
-z_map <- setNames(0:(length(regiones) - 1), regiones)
+# Contamos las frecuencia y unimos las combinaciones aunque deberiamos de hacerlo más selecto ig
+cubo_data <- mi_data %>%
+  select(age, gender, employment_status) %>%
+  group_by(age, gender, employment_status) %>%
+  summarise(Frecuencia = n(), .groups = 'drop') %>%
+  right_join(todas_combinaciones, by = c("age", "gender", "employment_status")) %>%
+  mutate(Frecuencia = ifelse(is.na(Frecuencia), 0, Frecuencia))
 
-ventas <- ventas %>%
-  mutate(x = x_map[as.character(Año)], y = y_map[Producto], z = z_map[Región])
+# Se sacan las dimensiones unicas para separarlas de manera facil aunque nuestros valores sean categoricos entonces cada texto unico es una dimension
+edades_unicas <- sort(unique(cubo_data$age))
+generos_unicos <- unique(cubo_data$gender)
+empleos_unicos <- unique(cubo_data$employment_status)
 
-# Graficar
+# Se hace el mapeo en 3D
+x_map <- setNames(0:(length(edades_unicas) - 1), edades_unicas)
+y_map <- setNames(0:(length(generos_unicos) - 1), generos_unicos)
+z_map <- setNames(0:(length(empleos_unicos) - 1), empleos_unicos)
+
+# Asignacion de las coords
+cubo_data <- cubo_data %>%
+  mutate(
+    x = x_map[as.character(age)], # altura desde 18 años hacia delante
+    y = y_map[gender], # Diferentes posiciones de y para el genero 
+    z = z_map[employment_status] # diferentes alturas para diferente tipo de gente en el aspecto de profesion
+  )
+
+# Paso 6: Crear la visualización 3D
 fig <- plot_ly(
-  ventas,
-  x = ~ x,
-  y = ~ y,
-  z = ~ z,
+  cubo_data,
+  x = ~x,
+  y = ~y, 
+  z = ~z,
   type = "scatter3d",
-  mode = "markers+text",
-  text = ~ paste("Ventas:", Ventas),
+  mode = "markers",
+  text = ~paste("Edad:", age, 
+                "<br>Género:", gender, 
+                "<br>Estado laboral:", employment_status, 
+                "<br>Frecuencia:", Frecuencia),
+  hoverinfo = "text",
   marker = list(
-    size = 8,
-    color = ~ Ventas,
+    size = ~Frecuencia/2 + 5,  # Tamaño proporcional a la frecuencia
+    color = ~Frecuencia,
     colorscale = "Viridis",
-    opacity = 0.8
+    opacity = 0.8,
+    showscale = TRUE,
+    sizemode = "diameter"
   )
 ) %>%
-  layout(scene = list(
-    xaxis = list(
-      title = "Año",
-      tickvals = 0:1,
-      ticktext = anios
+  layout(
+    scene = list(
+      xaxis = list(
+        title = "Edad",
+        tickvals = 0:(length(edades_unicas) - 1),
+        ticktext = edades_unicas
+      ),
+      yaxis = list(
+        title = "Género",
+        tickvals = 0:(length(generos_unicos) - 1),
+        ticktext = generos_unicos
+      ),
+      zaxis = list(
+        title = "Estado Laboral", 
+        tickvals = 0:(length(empleos_unicos) - 1),
+        ticktext = empleos_unicos
+      )
     ),
-    yaxis = list(
-      title = "Producto",
-      tickvals = 0:2,
-      ticktext = productos
-    ),
-    zaxis = list(
-      title = "Región",
-      tickvals = 0:1,
-      ticktext = regiones
-    )
-  ),
-  title = "Cubo OLAP(Ventas)")
+    title = "Cubo MOLAP - Distribución por Edad, Género y Estado Laboral",
+    margin = list(l = 0, r = 0, b = 0, t = 50)
+  )
 
+# Se muestra la fig
 fig
-
 
