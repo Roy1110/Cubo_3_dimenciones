@@ -1,0 +1,14 @@
+https://docs.google.com/document/d/1bSTqGVzkTDPBRiERd2H6KTLtYQm-S75G3jG683lwDKo/edit?usp=sharing
+
+Mental Health Dataset fue modificado para poner edades simuladas en base a lo que encontramos en los otros datasets, ya que este solito no tiene edades
+entonces lo modificamos con fines de facilitar el trabajo
+
+
+los datasets que utilizaremos son: -- el otro archivo no tiene un medidor de depresion y eso iba  a ser algo raro de trabajar 
+
+/mental_health_dataset --      age, gender,                  employment_status,                                depression_score (tenemos que generalizar el score a un si o no) 0-30     mental_health_history
+
+/Student Mental health --      Age, Choose your gender,      What is your course? (aca todos son estudiantes), Do you have Depression?                                                   Did you seek any specialist for a treatment?           
+
+/student_depression_dataset -- Age, Gender,                  Profession (tenemos que seleecionar students),    Depression                                                                Family History of Mental Illness (aca si bien no es igual a los otros campos puede servir)
+
